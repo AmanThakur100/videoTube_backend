@@ -52,4 +52,44 @@ const getAllVideos = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, fetchVideos, "Videos fetched successfully"));
 });
 
-export { getAllVideos };
+// publishVideo
+const publishVideo = asyncHandler(async (req, res) => {
+  const { title, description, thumbnail } = req.body;
+
+  const isUser = req.user._id;
+  if (!isUser) {
+    throw new ApiError(404, "user not found");
+  }
+
+  const user = await User.findById(isUser);
+  if (!user) {
+    throw new ApiError(404, "Invalid userId");
+  }
+
+  const fileVideoPath = req?.file?.path;
+
+  if (!fileVideoPath) {
+    throw new ApiError(404, "file path required");
+  }
+
+  const uploadedVideo = await uploadOnCloudinary(fileVideoPath);
+  const durationVideo = uploadedVideo.duration.toFixed(0);
+  const video = await Video.create({
+    title,
+    description,
+    thumbnail,
+    videoFile: uploadedVideo.url,
+    owner: user._id,
+    duration: durationVideo,
+  });
+
+  if (!video) {
+    throw new ApiError(404, "failed to published");
+  }
+  await video.save();
+  return res
+    .status(201)
+    .json(new ApiResponse(201, video, "publish video successfully"));
+});
+
+export { getAllVideos, publishVideo };
