@@ -92,4 +92,51 @@ const publishVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, video, "publish video successfully"));
 });
 
-export { getAllVideos, publishVideo };
+// getVideoById
+const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.query;
+  // const videoId = "68890ea9b9e1e832a51734ee";
+  console.log(videoId);
+
+  if (!videoId || !mongoose.Types.ObjectId.isValid(videoId)) {
+    throw new ApiError(404, "user not found");
+  }
+
+  const video = await Video.aggregate([
+    {
+      $match: { _id: new mongoose.Types.ObjectId(videoId) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        foreignField: "_id",
+        localField: "owner",
+        as: "userDetails",
+      },
+    },
+    {
+      $unwind: "$userDetails",
+    },
+    {
+      $project: {
+        username: "$userDetails.username",
+        thumbnail: 1,
+        description: 1,
+        title: 1,
+        views: 1,
+        duration: 1,
+        videoFile: 1,
+      },
+    },
+  ]);
+
+  if (!video) {
+    throw new ApiError(404, "video not found");
+  }
+
+  return res
+    .status(202)
+    .json(new ApiResponse(202, video, "video fetched successfully"));
+});
+
+export { getAllVideos, publishVideo, getVideoById };
