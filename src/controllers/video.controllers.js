@@ -139,4 +139,36 @@ const getVideoById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(202, video, "video fetched successfully"));
 });
 
-export { getAllVideos, publishVideo, getVideoById };
+//updateVideo
+const updateVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  const { title, description, thumbnail } = req.body;
+
+  if (!title.trim() || !description.trim() || !thumbnail.trim()) {
+    throw new ApiError(404, "All fields are required");
+  }
+
+  if (!videoId || !mongoose.Types.ObjectId.isValid(videoId)) {
+    throw new ApiError(404, "Invalid video Id");
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      title,
+      description,
+      thumbnail,
+    },
+    { new: true }
+  ).select("title description thumbnail");
+
+  if (!updatedVideo) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, updatedVideo, "update successfully"));
+});
+
+export { getAllVideos, publishVideo, getVideoById, updateVideo };
